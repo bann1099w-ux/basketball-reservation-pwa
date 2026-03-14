@@ -1,0 +1,21 @@
+{
+  "name": "バスケ予約抽選アシスタント",
+  "short_name": "バスケ予約",
+  "description": "バスケットボール練習の体育館予約を効率化するアシスタント",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#FAFAFA",
+  "theme_color": "#FF6B2B",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
