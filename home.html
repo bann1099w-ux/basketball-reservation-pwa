@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="app-version" content="2026-04-09-001">
+<title>学校開放事業 自動予約アプリ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --accent: #0d9488; --accent-bg: #e8f7f5;
+  --txt: #18181b; --txt2: #71717a;
+  --border: #e4e4e7; --bg: #f9fafb;
+  --card-shadow: 0 2px 12px rgba(0,0,0,0.07), 0 8px 32px rgba(0,0,0,0.05);
+  --green: #10b981; --yellow: #f59e0b; --blue: #3b82f6;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html,body { min-height:100%; font-family:'Noto Sans JP',sans-serif; background:var(--bg); color:var(--txt); overflow-x:hidden; }
+#app { display:flex; flex-direction:column; min-height:100vh; }
+#content { flex:1; padding-bottom:72px; overflow-y:auto; }
+
+/* ヘッダー */
+.header { background:#fff; padding:12px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:50; }
+.header-title { font-family:'Outfit',sans-serif; font-size:16px; font-weight:700; }
+.acct-tabs { display:flex; gap:6px; }
+.acct-tab { padding:5px 12px; border-radius:20px; border:1.5px solid var(--border); background:#fff; color:var(--txt2); font-size:12px; font-weight:600; cursor:pointer; font-family:'Noto Sans JP',sans-serif; transition:all .15s; }
+.acct-tab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+/* フッタータブ */
+.tab-nav { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--border); display:flex; z-index:100; padding-bottom:env(safe-area-inset-bottom); }
+.tab-btn { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 0 10px; gap:3px; border:none; background:none; cursor:pointer; color:var(--txt2); font-size:11px; font-family:'Noto Sans JP',sans-serif; transition:color .15s; }
+.tab-btn.active { color:var(--accent); }
+.tab-btn svg { width:22px; height:22px; }
+
+/* パネル */
+.panel { display:none; padding:16px; }
+.panel.active { display:block; }
+.sec-title { font-size:12px; font-weight:700; color:var(--txt2); margin-bottom:12px; margin-top:4px; }
+.card { background:#fff; border-radius:16px; box-shadow:var(--card-shadow); padding:16px; margin-bottom:12px; }
+
+/* カレンダー */
+.cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.cal-title { font-family:'Outfit',sans-serif; font-size:18px; font-weight:700; }
+.cal-nav { width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border); background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--txt2); font-size:16px; }
+.cal-nav:active { background:var(--accent-bg); }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+.cal-dow { text-align:center; font-size:11px; font-weight:600; color:var(--txt2); padding:4px 0; }
+.cal-dow:first-child { color:#ef4444; }
+.cal-dow:last-child { color:#3b82f6; }
+.cal-cell { aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:10px; cursor:pointer; font-size:13px; position:relative; transition:background .1s; gap:2px; }
+.cal-cell:active { background:var(--accent-bg); }
+.cal-cell.today { font-weight:700; background:#f0fdfa; }
+.cal-cell.selected { background:var(--accent); color:#fff; }
+.cal-cell.other-month { color:#d1d5db; }
+.cal-dots { display:flex; gap:2px; height:6px; }
+.cal-dot { width:6px; height:6px; border-radius:50%; }
+.cal-dot.green { background:var(--green); }
+.cal-dot.yellow { background:var(--yellow); }
+.cal-dot.blue { background:var(--blue); }
+
+/* 日付詳細 */
+.day-detail { margin-top:12px; }
+.day-detail-title { font-size:13px; font-weight:700; margin-bottom:8px; }
+.detail-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
+.detail-item:last-child { border-bottom:none; }
+.detail-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.detail-info { flex:1; }
+.detail-place { font-size:13px; font-weight:600; }
+.detail-time { font-size:11px; color:var(--txt2); margin-top:2px; }
+.detail-badge { font-size:11px; font-weight:700; padding:3px 8px; border-radius:20px; white-space:nowrap; }
+.badge-confirmed { background:#dcfce7; color:#16a34a; }
+.badge-pending { background:#fef3c7; color:#d97706; }
+.badge-applied { background:#dbeafe; color:#2563eb; }
+
+/* スタンプ */
+.stamp-section { margin-top:4px; }
+.stamp-dots { display:grid; grid-template-columns:repeat(20,1fr); gap:4px; margin-bottom:10px; }
+.stamp-dot { width:14px; height:14px; border-radius:50%; border:1.5px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:7px; }
+.stamp-dot.filled { background:var(--accent); border-color:var(--accent); color:#fff; }
+.stamp-count { font-size:14px; font-weight:600; margin-bottom:10px; }
+.stamp-count .num { font-family:'Outfit',sans-serif; font-size:20px; font-weight:700; color:var(--accent); }
+.stamp-btns { display:flex; gap:10px; margin-bottom:8px; }
+.stamp-btn { height:40px; padding:0 20px; border-radius:12px; border:1.5px solid var(--accent); font-size:14px; font-weight:700; font-family:'Noto Sans JP',sans-serif; cursor:pointer; transition:all .15s; }
+.stamp-btn.plus { background:var(--accent); color:#fff; }
+.stamp-btn.plus:active { opacity:.8; }
+.stamp-btn.minus { background:#fff; color:var(--accent); }
+.stamp-btn.minus:active { background:var(--accent-bg); }
+.stamp-reward { font-size:12px; color:var(--txt2); }
+.stamp-banner { background:linear-gradient(135deg,var(--accent),#0a7469); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:10px; text-align:center; font-size:14px; font-weight:700; }
+
+/* 更新ボタン行 */
+.refresh-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.refresh-meta { font-size:11px; color:var(--txt2); }
+.btn-refresh { display:flex; align-items:center; gap:5px; height:34px; padding:0 14px; flex-shrink:0; border:1.5px solid var(--accent); border-radius:20px; background:#fff; color:var(--accent); font-size:12px; font-weight:700; font-family:'Noto Sans JP',sans-serif; cursor:pointer; transition:background .15s; }
+.btn-refresh:active { background:var(--accent-bg); }
+.btn-refresh:disabled { opacity:.4; cursor:not-allowed; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.spin { animation:spin .8s linear infinite; transform-origin:center; display:inline-block; }
+
+/* ステータスバー */
+.fetch-bar { display:flex; align-items:center; gap:8px; font-size:12px; padding:10px 14px; border-radius:10px; margin-bottom:10px; }
+.fetch-bar.loading { background:#f3f4f6; color:var(--txt2); }
+.fetch-bar.success { background:#dcfce7; color:#16a34a; }
+.fetch-bar.error   { background:#fee2e2; color:#dc2626; }
+.fetch-bar.waiting { background:#eff6ff; color:#2563eb; }
+.fetch-bar.warning { background:#fef9c3; color:#a16207; }
+.progress-wrap { margin-bottom:10px; }
+.progress-bg   { background:#e5e7eb; border-radius:99px; height:4px; overflow:hidden; }
+.progress-fill { height:4px; border-radius:99px; background:var(--accent); width:0%; transition:width .5s; }
+.progress-label { font-size:11px; color:var(--txt2); margin-top:4px; text-align:right; }
+.error-detail { font-size:11px; color:#dc2626; background:#fff5f5; border:1px solid #fecaca; border-radius:8px; padding:8px 12px; margin-bottom:10px; line-height:1.6; }
+.empty-msg { text-align:center; font-size:13px; color:var(--txt2); padding:20px 0; line-height:1.8; }
+
+/* アカウント別セクション */
+.acct-section { margin-bottom:20px; padding-bottom:12px; border-bottom:2px solid var(--border); }
+.acct-section:last-child { border-bottom:none; margin-bottom:0; }
+.acct-section-label { font-size:15px; font-weight:700; color:var(--accent); }
+.acct-section-id { font-size:11px; color:var(--txt2); margin-left:4px; }
+
+/* 抽選申込タブ */
+.filter-section { margin-bottom:16px; }
+.filter-label { font-size:13px; font-weight:600; margin-bottom:8px; }
+.filter-chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+.filter-chip { padding:6px 14px; border-radius:20px; border:1.5px solid var(--border); background:#fff; font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; font-family:'Noto Sans JP',sans-serif; }
+.filter-chip.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.facility-list { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+.facility-tag { display:flex; align-items:center; gap:4px; padding:5px 10px; border-radius:16px; background:var(--accent-bg); color:var(--accent); font-size:12px; font-weight:600; }
+.facility-tag .remove { cursor:pointer; font-size:14px; margin-left:2px; }
+.btn-primary { display:block; width:100%; height:50px; background:var(--accent); color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:700; font-family:'Noto Sans JP',sans-serif; cursor:pointer; margin-top:16px; box-shadow:0 4px 16px rgba(13,148,136,.35); transition:opacity .15s,transform .1s; }
+.btn-primary:active { opacity:.9; transform:scale(.97); }
+.btn-primary:disabled { opacity:.4; cursor:not-allowed; transform:none; box-shadow:none; background:#9ca3af; }
+.result-item { display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--border); }
+.result-item:last-child { border-bottom:none; }
+
+/* 設定タブ */
+.setting-row { padding:14px 0; border-bottom:1px solid var(--border); }
+.setting-row:last-child { border-bottom:none; }
+.setting-label { font-size:14px; font-weight:500; margin-bottom:8px; }
+.setting-desc  { font-size:11px; color:var(--txt2); margin-top:6px; line-height:1.6; }
+.setting-input { width:100%; height:46px; border:1.5px solid var(--border); border-radius:12px; padding:0 14px; font-size:15px; font-family:'Outfit',sans-serif; color:var(--txt); background:#fff; outline:none; transition:border-color .15s; }
+.setting-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-bg); }
+.setting-input::placeholder { color:#d1d5db; }
+.acct-row { display:flex; align-items:center; gap:8px; padding:12px 0; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.acct-row:last-child { border-bottom:none; }
+.acct-label { font-size:14px; font-weight:700; color:var(--accent); width:24px; flex-shrink:0; }
+.acct-field { flex:1; min-width:0; }
+.acct-input { width:100%; height:38px; border:1.5px solid var(--border); border-radius:10px; padding:0 10px; font-size:13px; font-family:'Outfit',sans-serif; outline:none; }
+.acct-input:focus { border-color:var(--accent); }
+.pw-wrap { position:relative; }
+.pw-toggle { position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--txt2); padding:4px; display:flex; align-items:center; }
+.toggle-wrap { display:flex; align-items:center; gap:6px; }
+.toggle-switch { width:40px; height:22px; border-radius:11px; background:#d1d5db; position:relative; cursor:pointer; transition:background .2s; border:none; padding:0; }
+.toggle-switch.on { background:var(--accent); }
+.toggle-switch::after { content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#fff; transition:transform .2s; }
+.toggle-switch.on::after { transform:translateX(18px); }
+.toggle-label { font-size:11px; color:var(--txt2); }
+.btn-delete-acct { width:32px; height:32px; border-radius:8px; border:1px solid #fecaca; background:#fff; color:#ef4444; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+.btn-delete-acct:disabled { opacity:.3; cursor:not-allowed; }
+.btn-add-acct { width:100%; height:44px; border:2px dashed var(--border); border-radius:12px; background:none; color:var(--txt2); font-size:13px; font-weight:600; cursor:pointer; font-family:'Noto Sans JP',sans-serif; margin-top:8px; transition:border-color .15s; }
+.btn-add-acct:hover { border-color:var(--accent); color:var(--accent); }
+.btn-add-acct:disabled { opacity:.3; cursor:not-allowed; }
+.btn-save { display:block; width:100%; height:50px; background:var(--accent); color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:700; font-family:'Noto Sans JP',sans-serif; cursor:pointer; margin-top:16px; box-shadow:0 4px 16px rgba(13,148,136,.35); transition:opacity .15s; }
+.btn-save:active { opacity:.9; }
+.display-option { display:flex; align-items:center; gap:10px; padding:10px 0; }
+.display-option .dot-preview { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.display-option label { font-size:13px; flex:1; }
+.api-row { display:flex; align-items:center; gap:8px; margin-top:6px; }
+.api-dot { width:8px; height:8px; border-radius:50%; background:#d1d5db; flex-shrink:0; }
+.api-dot.ok  { background:#22c55e; }
+.api-dot.err { background:#ef4444; }
+.btn-test { height:40px; padding:0 14px; border:1.5px solid var(--accent); border-radius:10px; background:var(--accent-bg); color:var(--accent); font-size:12px; font-weight:700; font-family:'Noto Sans JP',sans-serif; cursor:pointer; margin-top:10px; }
+
+/* モーダル */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:200; display:none; align-items:flex-end; justify-content:center; }
+.modal-overlay.open { display:flex; }
+.modal { background:#fff; border-radius:20px 20px 0 0; width:100%; max-width:480px; max-height:85vh; display:flex; flex-direction:column; animation:slideUp .25s ease; }
+@keyframes slideUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
+.modal-header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px 12px; border-bottom:1px solid var(--border); }
+.modal-title { font-size:16px; font-weight:700; }
+.modal-close { width:32px; height:32px; border-radius:50%; border:none; background:var(--bg); font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--txt2); }
+.modal-search { padding:12px 20px; }
+.modal-search input { width:100%; height:40px; border:1.5px solid var(--border); border-radius:10px; padding:0 12px 0 36px; font-size:13px; font-family:'Noto Sans JP',sans-serif; outline:none; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") 12px center no-repeat; }
+.modal-search input:focus { border-color:var(--accent); }
+.modal-body { flex:1; overflow-y:auto; padding:0 20px 12px; -webkit-overflow-scrolling:touch; }
+.modal-footer { padding:12px 20px 20px; border-top:1px solid var(--border); }
+.ward-group { margin-bottom:4px; }
+.ward-header { display:flex; align-items:center; gap:8px; padding:10px 0; cursor:pointer; font-size:14px; font-weight:700; color:var(--txt); user-select:none; }
+.ward-header .arrow { font-size:10px; color:var(--txt2); transition:transform .15s; }
+.ward-header.open .arrow { transform:rotate(90deg); }
+.ward-header .count { font-size:11px; font-weight:500; color:var(--txt2); }
+.ward-items { display:none; padding-left:4px; }
+.ward-items.open { display:block; }
+.facility-item { display:flex; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px solid #f4f4f5; cursor:pointer; border-radius:6px; transition:background .1s; }
+.facility-item:active { background:var(--accent-bg); }
+.facility-item.disabled { opacity:.4; cursor:not-allowed; pointer-events:none; }
+.facility-item .checkbox { width:20px; height:20px; border-radius:6px; border:2px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all .15s; font-size:12px; color:#fff; }
+.facility-item.checked .checkbox { background:var(--accent); border-color:var(--accent); }
+.facility-item .f-name { font-size:13px; font-weight:500; flex:1; }
+.facility-item .f-code { font-size:11px; color:var(--txt2); }
+
+/* 施設追加ボタン */
+.btn-add-facility-open { width:100%; height:44px; border:2px dashed var(--border); border-radius:12px; background:none; color:var(--txt2); font-size:13px; font-weight:600; cursor:pointer; font-family:'Noto Sans JP',sans-serif; margin-top:8px; transition:border-color .15s; }
+.btn-add-facility-open:hover { border-color:var(--accent); color:var(--accent); }
+.facility-summary { font-size:12px; color:var(--txt2); margin-bottom:8px; }
+
+/* 同期ボタン */
+.sync-card { margin-top:16px; }
+.btn-sync { display:flex; align-items:center; justify-content:center; gap:6px; width:100%; height:48px; border:1.5px solid var(--accent); border-radius:14px; background:var(--accent-bg); color:var(--accent); font-size:14px; font-weight:700; font-family:'Noto Sans JP',sans-serif; cursor:pointer; transition:all .15s; }
+.btn-sync:active { background:var(--accent); color:#fff; }
+.btn-sync:disabled { opacity:.4; cursor:not-allowed; }
+.sync-status { font-size:11px; color:var(--txt2); text-align:center; margin-top:8px; }
+.sync-ok { color:#16a34a; }
+.sync-pending { color:#d97706; }
+
+/* per-accountスタンプ */
+.stamp-acct { padding:10px 0; border-bottom:1px solid var(--border); }
+.stamp-acct:last-child { border-bottom:none; }
+.stamp-acct-label { font-size:13px; font-weight:700; color:var(--accent); margin-bottom:6px; }
+.stamp-bar-wrap { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+.stamp-bar-bg { flex:1; height:14px; background:#e5e7eb; border-radius:7px; overflow:hidden; }
+.stamp-bar-fill { height:100%; background:var(--accent); border-radius:7px; transition:width .3s; }
+.stamp-bar-label { font-size:13px; font-weight:600; font-family:'Outfit',sans-serif; white-space:nowrap; min-width:50px; text-align:right; }
+.stamp-acct-btns { display:flex; gap:8px; }
+.stamp-acct-btns button { height:32px; padding:0 14px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:'Noto Sans JP',sans-serif; border:1.5px solid var(--accent); }
+.stamp-acct-btns .plus { background:var(--accent); color:#fff; }
+.stamp-acct-btns .minus { background:#fff; color:var(--accent); }
+.stamp-total { font-size:13px; color:var(--txt2); margin-top:10px; text-align:center; }
+
+/* 落選表示トグル */
+.display-option.lost .dot-preview { background:#9ca3af; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ヘッダー -->
+  <div class="header">
+    <span class="header-title">バスケ予約</span>
+    <div class="acct-tabs" id="acct-tabs"></div>
+  </div>
+
+  <div id="content">
+
+    <!-- ══ 現在状況タブ ══ -->
+    <div class="panel active" id="panel-status">
+
+      <div id="accounts-status-container"></div>
+
+      <!-- スタンプカード -->
+      <div class="card stamp-section">
+        <div class="sec-title">スタンプカード</div>
+        <div id="stamp-accounts"></div>
+        <div class="stamp-reward" style="text-align:center;margin-bottom:6px">80枚達成で無料4時間分</div>
+      <div class="stamp-total" id="stamp-total">無料券獲得数: 合計 0枚</div>
+      </div>
+    </div>
+
+    <!-- ══ 抽選申込タブ ══ -->
+    <div class="panel" id="panel-apply">
+      <div class="sec-title">対象施設</div>
+      <div class="card">
+        <div class="facility-summary" id="facility-summary">選択中: 0件</div>
+        <div class="facility-list" id="facility-list"></div>
+        <button class="btn-add-facility-open" onclick="openFacilityModal()">＋ 施設を追加</button>
+      </div>
+
+      <div class="card filter-section">
+        <div class="filter-label">練習曜日</div>
+        <div class="filter-chips" id="dow-chips">
+          <button class="filter-chip" data-dow="1" onclick="toggleFilterChip(this)">月</button>
+          <button class="filter-chip" data-dow="2" onclick="toggleFilterChip(this)">火</button>
+          <button class="filter-chip" data-dow="3" onclick="toggleFilterChip(this)">水</button>
+          <button class="filter-chip" data-dow="4" onclick="toggleFilterChip(this)">木</button>
+          <button class="filter-chip" data-dow="5" onclick="toggleFilterChip(this)">金</button>
+          <button class="filter-chip" data-dow="6" onclick="toggleFilterChip(this)">土</button>
+          <button class="filter-chip" data-dow="0" onclick="toggleFilterChip(this)">日</button>
+        </div>
+        <div class="filter-label">時間帯</div>
+        <div class="filter-chips" id="period-chips">
+          <button class="filter-chip" data-period="morning" onclick="toggleFilterChip(this)">午前</button>
+          <button class="filter-chip" data-period="afternoon" onclick="toggleFilterChip(this)">午後</button>
+          <button class="filter-chip" data-period="night" onclick="toggleFilterChip(this)">夜間</button>
+        </div>
+      </div>
+
+      <div class="card sync-card">
+        <button class="btn-sync" id="btn-sync" onclick="syncSettings()">設定をサーバーに同期</button>
+        <div class="sync-status" id="sync-status"></div>
+      </div>
+
+      <button class="btn-primary" disabled data-action="auto-apply" style="margin-top:16px">自動申込（準備中）</button>
+
+      <div class="sec-title" style="margin-top:20px">申込結果</div>
+      <div class="card" id="apply-results">
+        <div class="empty-msg">まだ申込実行されていません</div>
+      </div>
+    </div>
+
+    <!-- ══ 設定タブ ══ -->
+    <div class="panel" id="panel-settings">
+      <div class="sec-title">アカウント管理</div>
+      <div class="card" id="acct-manager"></div>
+      <button class="btn-save" onclick="saveAllSettings()">設定を保存</button>
+
+      <div class="sec-title" style="margin-top:20px">カレンダー表示項目</div>
+      <div class="card">
+        <div class="display-option">
+          <div class="dot-preview" style="background:var(--green)"></div>
+          <label>確定予約（R01/L05）</label>
+          <button class="toggle-switch on" id="disp-confirmed" onclick="toggleDisplay(this)"></button>
+        </div>
+        <div class="display-option">
+          <div class="dot-preview" style="background:var(--yellow)"></div>
+          <label>抽選申込中（L03）</label>
+          <button class="toggle-switch on" id="disp-pending" onclick="toggleDisplay(this)"></button>
+        </div>
+        <div class="display-option">
+          <div class="dot-preview" style="background:var(--blue)"></div>
+          <label>空き情報（23〜26日）</label>
+          <button class="toggle-switch on" id="disp-vacancy" onclick="toggleDisplay(this)"></button>
+        </div>
+        <div class="display-option lost">
+          <div class="dot-preview"></div>
+          <label>落選（L07）</label>
+          <button class="toggle-switch" id="disp-lost" onclick="toggleDisplay(this)"></button>
+        </div>
+      </div>
+
+      <div class="sec-title" style="margin-top:20px">APIサーバーURL</div>
+      <div class="card">
+        <div class="setting-row" style="border:none;padding:0">
+          <div class="api-row">
+            <span class="api-dot" id="api-dot"></span>
+            <input type="text" class="setting-input" id="api-url" placeholder="例）http://100.77.24.4:5100" style="height:40px;font-size:13px;">
+          </div>
+          <div class="setting-desc">harp_api_server.py のベースURL</div>
+          <button class="btn-test" onclick="testConnection()">接続テスト</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 施設選択モーダル -->
+  <div class="modal-overlay" id="facility-modal" onclick="if(event.target===this)closeFacilityModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">施設を選択</span>
+        <button class="modal-close" onclick="closeFacilityModal()">✕</button>
+      </div>
+      <div class="modal-search">
+        <input type="text" id="facility-search" placeholder="施設名で検索..." oninput="filterFacilityModal()">
+      </div>
+      <div class="modal-body" id="facility-modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn-primary" style="margin:0" onclick="confirmFacilitySelection()">選択を確定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- フッタータブ -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" id="tab-status" onclick="switchTab('status')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      現在状況
+    </button>
+    <button class="tab-btn" id="tab-apply" onclick="switchTab('apply')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
+      抽選申込
+    </button>
+    <button class="tab-btn" id="tab-settings" onclick="switchTab('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      設定
+    </button>
+  </nav>
+
+</div>
+<script>
+/* =================================================================
+   home.js  v6.0 - 3タブ全面改修版
+   更新日: 2026-03-24
+   ================================================================= */
+
+// === キャッシュバージョン管理 ===
+// デプロイごとにこの値を更新する
+var APP_VERSION = '2026-04-09-001';
+var CACHE_KEY_PREFIX = 'pwa_cache_';
+
+function clearOldCaches() {
+  var keys = Object.keys(localStorage);
+  keys.forEach(function(key) {
+    if (key.startsWith(CACHE_KEY_PREFIX)) {
+      try {
+        var data = JSON.parse(localStorage.getItem(key));
+        if (!data || data.version !== APP_VERSION) {
+          localStorage.removeItem(key);
+        }
+      } catch(e) {
+        localStorage.removeItem(key);
+      }
+    }
+  });
+}
+
+var SITE_URL      = 'https://yoyaku.harp.lg.jp/';
+var MAX_SLOTS     = 15;
+var POLL_INTERVAL = 3000;
+var POLL_MAX      = 40;
+var MAX_ACCOUNTS  = 5;
+var STAMP_MAX     = 80;
+var STAMP_PER_FREE = 80;
+
+// localStorageキー
+var ACCOUNTS_KEY  = 'pwa_accounts';
+var LEGACY_KEY    = 'pwa_settings';
+var API_URL_KEY   = 'pwa_api_url';
+var STAMP_KEY     = 'pwa_stamps';
+var DISPLAY_KEY   = 'pwa_display_config';
+var APPLY_KEY     = 'pwa_apply_results';
+var ACTIVE_KEY    = 'pwa_active_account';
+var FACILITIES_KEY = 'pwa_selected_facilities';
+var FILTER_KEY    = 'pwa_filter_config';
+var SYNC_KEY      = 'pwa_sync_status';
+
+// 施設マスターデータ（187校・harp SearchFacility API由来）
+var FACILITY_MASTER = [
+  {"fc":"0211","fn":"三角山小学校","an":"中央区"},{"fc":"0214","fn":"中央中学校","an":"中央区"},{"fc":"1001","fn":"中央小学校","an":"中央区"},{"fc":"0215","fn":"中島中学校","an":"中央区"},{"fc":"1000","fn":"二条小学校","an":"中央区"},{"fc":"0218","fn":"伏見中学校","an":"中央区"},{"fc":"0210","fn":"伏見小学校","an":"中央区"},{"fc":"0217","fn":"向陵中学校","an":"中央区"},{"fc":"0216","fn":"啓明中学校","an":"中央区"},{"fc":"0219","fn":"宮の森中学校","an":"中央区"},{"fc":"0220","fn":"山鼻中学校","an":"中央区"},{"fc":"0212","fn":"山鼻南小学校","an":"中央区"},{"fc":"0203","fn":"山鼻小学校","an":"中央区"},{"fc":"0204","fn":"幌西小学校","an":"中央区"},{"fc":"0208","fn":"日新小学校","an":"中央区"},{"fc":"0213","fn":"柏中学校","an":"中央区"},{"fc":"0205","fn":"桑園小学校","an":"中央区"},{"fc":"0209","fn":"緑丘小学校","an":"中央区"},
+  {"fc":"0252","fn":"あいの里東中学校","an":"北区"},{"fc":"0253","fn":"あいの里東小学校","an":"北区"},{"fc":"0255","fn":"上篠路中学校","an":"北区"},{"fc":"0247","fn":"光陽中学校","an":"北区"},{"fc":"0236","fn":"光陽小学校","an":"北区"},{"fc":"0230","fn":"北九条小学校","an":"北区"},{"fc":"0242","fn":"北辰中学校","an":"北区"},{"fc":"0244","fn":"北陽中学校","an":"北区"},{"fc":"0235","fn":"和光小学校","an":"北区"},{"fc":"0248","fn":"太平中学校","an":"北区"},{"fc":"0249","fn":"屯田中央中学校","an":"北区"},{"fc":"0258","fn":"屯田北中学校","an":"北区"},{"fc":"0257","fn":"屯田北小学校","an":"北区"},{"fc":"0233","fn":"屯田小学校","an":"北区"},{"fc":"0241","fn":"屯田西小学校","an":"北区"},{"fc":"1002","fn":"幌北小学校","an":"北区"},{"fc":"0238","fn":"新川中央小学校","an":"北区"},{"fc":"0246","fn":"新川中学校","an":"北区"},{"fc":"0234","fn":"新川小学校","an":"北区"},{"fc":"0250","fn":"新川西中学校","an":"北区"},{"fc":"0243","fn":"新琴似中学校","an":"北区"},{"fc":"0245","fn":"新琴似北中学校","an":"北区"},{"fc":"0232","fn":"新琴似小学校","an":"北区"},{"fc":"0240","fn":"新琴似緑小学校","an":"北区"},{"fc":"1003","fn":"白楊小学校","an":"北区"},{"fc":"0254","fn":"百合が原小学校","an":"北区"},{"fc":"0251","fn":"篠路中学校","an":"北区"},{"fc":"0259","fn":"篠路西小学校","an":"北区"},
+  {"fc":"0478","fn":"南が丘中学校","an":"南区"},{"fc":"0466","fn":"南の沢小学校","an":"南区"},{"fc":"0460","fn":"南小学校","an":"南区"},{"fc":"0473","fn":"常盤中学校","an":"南区"},{"fc":"0475","fn":"澄川中学校","an":"南区"},{"fc":"0468","fn":"澄川南小学校","an":"南区"},{"fc":"0462","fn":"澄川小学校","an":"南区"},{"fc":"1016","fn":"澄川西小学校","an":"南区"},{"fc":"0474","fn":"真駒内中学校","an":"南区"},{"fc":"0476","fn":"真駒内曙中学校","an":"南区"},{"fc":"0461","fn":"真駒内桜山小学校","an":"南区"},{"fc":"0472","fn":"簾舞中学校","an":"南区"},{"fc":"0479","fn":"藤の沢小学校","an":"南区"},{"fc":"0477","fn":"藤野中学校","an":"南区"},{"fc":"0470","fn":"藻岩中学校","an":"南区"},
+  {"fc":"1008","fn":"ひばりが丘小学校","an":"厚別区"},{"fc":"0367","fn":"もみじ台中学校","an":"厚別区"},{"fc":"0372","fn":"上野幌中学校","an":"厚別区"},{"fc":"0366","fn":"信濃中学校","an":"厚別区"},{"fc":"0361","fn":"共栄小学校","an":"厚別区"},{"fc":"0370","fn":"厚別中学校","an":"厚別区"},{"fc":"0374","fn":"厚別北中学校","an":"厚別区"},{"fc":"0371","fn":"厚別南中学校","an":"厚別区"},{"fc":"0365","fn":"厚別東小学校","an":"厚別区"},{"fc":"0373","fn":"厚別通小学校","an":"厚別区"},{"fc":"0369","fn":"青葉中学校","an":"厚別区"},
+  {"fc":"0529","fn":"前田中学校","an":"手稲区"},{"fc":"0531","fn":"前田北中学校","an":"手稲区"},{"fc":"0523","fn":"富丘小学校","an":"手稲区"},{"fc":"0520","fn":"手稲中央小学校","an":"手稲区"},{"fc":"0527","fn":"手稲中学校","an":"手稲区"},{"fc":"0522","fn":"手稲山口小学校","an":"手稲区"},{"fc":"1015","fn":"手稲鉄北小学校","an":"手稲区"},{"fc":"0525","fn":"新発寒小学校","an":"手稲区"},{"fc":"0534","fn":"新陵中学校","an":"手稲区"},{"fc":"0533","fn":"星置中学校","an":"手稲区"},{"fc":"0530","fn":"稲積中学校","an":"手稲区"},{"fc":"0528","fn":"稲陵中学校","an":"手稲区"},
+  {"fc":"0307","fn":"丘珠中学校","an":"東区"},{"fc":"0310","fn":"丘珠小学校","an":"東区"},{"fc":"0297","fn":"伏古北小学校","an":"東区"},{"fc":"0293","fn":"伏古小学校","an":"東区"},{"fc":"0306","fn":"元町中学校","an":"東区"},{"fc":"1005","fn":"元町小学校","an":"東区"},{"fc":"1004","fn":"北光小学校","an":"東区"},{"fc":"0283","fn":"北園小学校","an":"東区"},{"fc":"0299","fn":"北栄中学校","an":"東区"},{"fc":"0302","fn":"明園中学校","an":"東区"},{"fc":"0285","fn":"明園小学校","an":"東区"},{"fc":"0286","fn":"本町小学校","an":"東区"},{"fc":"0300","fn":"札幌中学校","an":"東区"},{"fc":"0281","fn":"札幌小学校","an":"東区"},{"fc":"0304","fn":"札苗中学校","an":"東区"},{"fc":"0311","fn":"札苗北中学校","an":"東区"},{"fc":"0309","fn":"札苗緑小学校","an":"東区"},{"fc":"0301","fn":"東栄中学校","an":"東区"},{"fc":"0303","fn":"栄中学校","an":"東区"},{"fc":"0288","fn":"栄北小学校","an":"東区"},{"fc":"0305","fn":"栄南中学校","an":"東区"},{"fc":"0292","fn":"栄南小学校","an":"東区"},{"fc":"0282","fn":"栄小学校","an":"東区"},{"fc":"0290","fn":"栄東小学校","an":"東区"},{"fc":"0308","fn":"栄町中学校","an":"東区"},{"fc":"0295","fn":"栄町小学校","an":"東区"},{"fc":"0296","fn":"栄緑小学校","an":"東区"},{"fc":"0287","fn":"栄西小学校","an":"東区"},{"fc":"0298","fn":"美香保中学校","an":"東区"},{"fc":"0280","fn":"美香保小学校","an":"東区"},{"fc":"0294","fn":"開成小学校","an":"東区"},
+  {"fc":"0434","fn":"北野中学校","an":"清田区"},{"fc":"0436","fn":"北野台中学校","an":"清田区"},{"fc":"0441","fn":"平岡中央中学校","an":"清田区"},{"fc":"0432","fn":"平岡中央小学校","an":"清田区"},{"fc":"0435","fn":"平岡中学校","an":"清田区"},{"fc":"0439","fn":"平岡公園小学校","an":"清田区"},{"fc":"0431","fn":"平岡南小学校","an":"清田区"},{"fc":"0438","fn":"平岡緑中学校","an":"清田区"},{"fc":"0430","fn":"清田南小学校","an":"清田区"},{"fc":"1011","fn":"清田小学校","an":"清田区"},{"fc":"0437","fn":"真栄中学校","an":"清田区"},{"fc":"0440","fn":"美しが丘緑小学校","an":"清田区"},
+  {"fc":"0331","fn":"上白石小学校","an":"白石区"},{"fc":"0345","fn":"北白石中学校","an":"白石区"},{"fc":"0335","fn":"北郷小学校","an":"白石区"},{"fc":"0346","fn":"北都中学校","an":"白石区"},{"fc":"0336","fn":"北都小学校","an":"白石区"},{"fc":"1007","fn":"南白石小学校","an":"白石区"},{"fc":"0333","fn":"南郷小学校","an":"白石区"},{"fc":"1006","fn":"大谷地小学校","an":"白石区"},{"fc":"0339","fn":"川北小学校","an":"白石区"},{"fc":"0340","fn":"幌東中学校","an":"白石区"},{"fc":"0337","fn":"幌東小学校","an":"白石区"},{"fc":"0342","fn":"日章中学校","an":"白石区"},{"fc":"0344","fn":"東白石中学校","an":"白石区"},{"fc":"0343","fn":"柏丘中学校","an":"白石区"},{"fc":"0341","fn":"白石中学校","an":"白石区"},{"fc":"0330","fn":"白石小学校","an":"白石区"},{"fc":"0347","fn":"米里中学校","an":"白石区"},
+  {"fc":"0496","fn":"二十四軒小学校","an":"西区"},{"fc":"0504","fn":"八軒中学校","an":"西区"},{"fc":"0501","fn":"八軒北小学校","an":"西区"},{"fc":"0495","fn":"八軒小学校","an":"西区"},{"fc":"0499","fn":"八軒西小学校","an":"西区"},{"fc":"0510","fn":"宮の丘中学校","an":"西区"},{"fc":"0500","fn":"山の手南小学校","an":"西区"},{"fc":"0491","fn":"山の手小学校","an":"西区"},{"fc":"0493","fn":"手稲宮丘小学校","an":"西区"},{"fc":"0505","fn":"手稲東中学校","an":"西区"},{"fc":"0502","fn":"琴似中学校","an":"西区"},{"fc":"1013","fn":"琴似小学校","an":"西区"},{"fc":"0506","fn":"発寒中学校","an":"西区"},{"fc":"1017","fn":"発寒南小学校","an":"西区"},{"fc":"0511","fn":"福井野中学校","an":"西区"},{"fc":"0498","fn":"西小学校","an":"西区"},{"fc":"0508","fn":"西野中学校","an":"西区"},{"fc":"0503","fn":"陵北中学校","an":"西区"},
+  {"fc":"0415","fn":"あやめ野中学校","an":"豊平区"},{"fc":"0405","fn":"あやめ野小学校","an":"豊平区"},{"fc":"0416","fn":"しらかば台小学校","an":"豊平区"},{"fc":"0402","fn":"みどり小学校","an":"豊平区"},{"fc":"0413","fn":"中の島中学校","an":"豊平区"},{"fc":"1009","fn":"中の島小学校","an":"豊平区"},{"fc":"0406","fn":"八条中学校","an":"豊平区"},{"fc":"0401","fn":"南月寒小学校","an":"豊平区"},{"fc":"0408","fn":"平岸中学校","an":"豊平区"},{"fc":"1010","fn":"平岸小学校","an":"豊平区"},{"fc":"0400","fn":"平岸西小学校","an":"豊平区"},{"fc":"0404","fn":"平岸高台小学校","an":"豊平区"},{"fc":"0392","fn":"旭小学校","an":"豊平区"},{"fc":"0407","fn":"月寒中学校","an":"豊平区"},{"fc":"0393","fn":"月寒小学校","an":"豊平区"},{"fc":"0397","fn":"月寒東小学校","an":"豊平区"},{"fc":"0391","fn":"東園小学校","an":"豊平区"},{"fc":"0399","fn":"東山小学校","an":"豊平区"},{"fc":"0411","fn":"東月寒中学校","an":"豊平区"},{"fc":"0410","fn":"羊丘中学校","an":"豊平区"},{"fc":"0412","fn":"西岡中学校","an":"豊平区"},{"fc":"0414","fn":"西岡北中学校","an":"豊平区"},{"fc":"0395","fn":"豊園小学校","an":"豊平区"},{"fc":"0390","fn":"豊平小学校","an":"豊平区"},{"fc":"0409","fn":"陵陽中学校","an":"豊平区"}
+];
+
+var _pollTimer = null;
+var _pollCount = 0;
+var _calYear, _calMonth; // カレンダー表示中の年月
+var _selectedDate = null; // 選択中の日付(YYYY-MM-DD)
+var _activeAccountId = null;
+
+// ── ヘルパー ──
+function show(id){ var e=document.getElementById(id); if(e) e.style.display='block'; }
+function hide(id){ var e=document.getElementById(id); if(e) e.style.display='none'; }
+function setText(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; }
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+// ── localStorage ──
+function getAccounts(){
+  try{ var v=localStorage.getItem(ACCOUNTS_KEY); return v?JSON.parse(v):null; }catch(e){ return null; }
+}
+function setAccounts(arr){
+  try{ localStorage.setItem(ACCOUNTS_KEY,JSON.stringify(arr)); }catch(e){}
+  // 後方互換: pwa_settings も更新
+  if(arr&&arr.length>0){
+    try{ localStorage.setItem(LEGACY_KEY,JSON.stringify({id:arr[0].id,pw:arr[0].pw})); }catch(e){}
+  }
+}
+function getApiUrl(){ try{ return localStorage.getItem(API_URL_KEY)||''; }catch(e){ return ''; } }
+function saveApiUrl(u){ try{ localStorage.setItem(API_URL_KEY,u.trim()); }catch(e){} }
+function getCache(id){ if(!id) return null; try{ var v=localStorage.getItem('pwa_cache_'+id); return v?JSON.parse(v):null; }catch(e){ return null; } }
+function setCache(id,d){ if(!id) return; try{ localStorage.setItem('pwa_cache_'+id,JSON.stringify(d)); }catch(e){} }
+function getStamps(){
+  try{ var v=localStorage.getItem(STAMP_KEY); return v?JSON.parse(v):{}; }catch(e){ return {}; }
+}
+function setStamps(d){ try{ localStorage.setItem(STAMP_KEY,JSON.stringify(d)); }catch(e){} }
+function getDisplayConfig(){
+  try{ var v=localStorage.getItem(DISPLAY_KEY); return v?JSON.parse(v):{confirmed:true,pending:true,vacancy:true,lost:false}; }catch(e){ return {confirmed:true,pending:true,vacancy:true,lost:false}; }
+}
+function setDisplayConfig(d){ try{ localStorage.setItem(DISPLAY_KEY,JSON.stringify(d)); }catch(e){} }
+function getSelectedFacilities(){
+  try{ var v=localStorage.getItem(FACILITIES_KEY); return v?JSON.parse(v):[]; }catch(e){ return []; }
+}
+function setSelectedFacilities(arr){
+  try{ localStorage.setItem(FACILITIES_KEY,JSON.stringify(arr)); }catch(e){}
+  markSyncDirty();
+}
+function getFilterConfig(){
+  try{ var v=localStorage.getItem(FILTER_KEY); return v?JSON.parse(v):{days:[],timeSlots:[]}; }catch(e){ return {days:[],timeSlots:[]}; }
+}
+function setFilterConfig(d){
+  try{ localStorage.setItem(FILTER_KEY,JSON.stringify(d)); }catch(e){}
+  markSyncDirty();
+}
+function getSyncStatus(){
+  try{ var v=localStorage.getItem(SYNC_KEY); return v?JSON.parse(v):{dirty:false,lastSync:null}; }catch(e){ return {dirty:false,lastSync:null}; }
+}
+function setSyncStatus(d){ try{ localStorage.setItem(SYNC_KEY,JSON.stringify(d)); }catch(e){} }
+function markSyncDirty(){
+  var s=getSyncStatus(); s.dirty=true; setSyncStatus(s); renderSyncStatus();
+}
+
+// ── 旧データ移行 ──
+function migrateLegacy(){
+  var accounts = getAccounts();
+  if(accounts) return accounts;
+  try{
+    var legacy=JSON.parse(localStorage.getItem(LEGACY_KEY)||'null');
+    if(legacy&&legacy.id){
+      var arr=[{id:legacy.id, pw:legacy.pw||'', label:'①', visible:true}];
+      setAccounts(arr);
+      return arr;
+    }
+  }catch(e){}
+  return null;
+}
+
+// ── アクティブアカウント ──
+function getActiveAccount(){
+  var accounts=getAccounts();
+  if(!accounts||accounts.length===0) return null;
+  // アクティブIDで検索、見つからなければvisible:trueの最初
+  if(_activeAccountId){
+    for(var i=0;i<accounts.length;i++){
+      if(accounts[i].id===_activeAccountId) return accounts[i];
+    }
+  }
+  for(var i=0;i<accounts.length;i++){
+    if(accounts[i].visible) return accounts[i];
+  }
+  return accounts[0];
+}
+function getVisibleAccounts(){
+  var accounts=getAccounts();
+  if(!accounts) return [];
+  return accounts.filter(function(a){ return a.visible; });
+}
+
+// ── ヘッダーアカウントタブ ──
+function renderAcctTabs(){
+  var container=document.getElementById('acct-tabs');
+  var visible=getVisibleAccounts();
+  if(visible.length<=1){ container.innerHTML=''; return; }
+  var active=getActiveAccount();
+  var html='';
+  visible.forEach(function(a){
+    var cls='acct-tab'+(active&&active.id===a.id?' active':'');
+    html+='<button class="'+cls+'" onclick="switchAccount(\''+escHtml(a.id)+'\')">'+escHtml(a.label)+'</button>';
+  });
+  container.innerHTML=html;
+}
+
+function switchAccount(id){
+  _activeAccountId=id;
+  try{ localStorage.setItem(ACTIVE_KEY,id); }catch(e){}
+  renderAcctTabs();
+  // 該当アカウントセクションへスクロール
+  var visible=getVisibleAccounts();
+  for(var i=0;i<visible.length;i++){
+    if(visible[i].id===id){
+      var el=document.getElementById('acct-section-'+i);
+      if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+      break;
+    }
+  }
+  renderStamps();
+}
+
+// ── フッタータブ切替 ──
+function switchTab(name){
+  ['status','apply','settings'].forEach(function(t){
+    document.getElementById('tab-'+t).classList.toggle('active',t===name);
+    document.getElementById('panel-'+t).classList.toggle('active',t===name);
+  });
+  if(name==='status') applyStatusPanel();
+  if(name==='settings') renderSettingsPanel();
+}
+
+// ══════════════════════════════════════
+//  現在状況タブ（全アカウント同時表示版）
+// ══════════════════════════════════════
+
+var _refreshingIdx = -1;
+
+function applyStatusPanel(){
+  var visible=getVisibleAccounts();
+  var container=document.getElementById('accounts-status-container');
+  if(!container) return;
+  if(!visible||visible.length===0){
+    container.innerHTML='<div class="empty-msg">設定タブでアカウントを追加してください</div>';
+    return;
+  }
+  var html='';
+  visible.forEach(function(acct,idx){ html+=buildAccountSection(acct,idx); });
+  container.innerHTML=html;
+  renderStamps();
+}
+
+function buildAccountSection(acct,idx){
+  var cached=getCache(acct.id);
+  var reserves=(cached&&cached.reserves)?cached.reserves:[];
+  var fetchTime=cached?formatTime(cached.fetchedAt):'未取得';
+  var config=getDisplayConfig();
+  var isRefreshing=(idx===_refreshingIdx);
+  var reserveMap={};
+  reserves.forEach(function(r){
+    var ud=r.ud||'';if(!ud)return;
+    if(!reserveMap[ud])reserveMap[ud]=[];
+    reserveMap[ud].push(r);
+  });
+  var h='';
+  h+='<div class="acct-section" id="acct-section-'+idx+'">';
+  // ヘッダー行
+  h+='<div class="refresh-row">';
+  h+='<div style="display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap">';
+  h+='<span class="acct-section-label">'+escHtml(acct.label)+'</span>';
+  if(acct.id) h+='<span class="acct-section-id">'+escHtml(acct.id)+'</span>';
+  h+='<span class="refresh-meta" id="fetch-time-'+idx+'">'+fetchTime+'</span>';
+  h+='</div>';
+  h+='<button class="btn-refresh" id="btn-refresh-'+idx+'"'+(isRefreshing?' disabled':'')+' onclick="startRefreshFor('+idx+')">';
+  h+='<svg id="refresh-icon-'+idx+'"'+(isRefreshing?' class="spin"':'')+' width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">';
+  h+='<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>';
+  h+='<path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>';
+  h+='</svg> 更新</button></div>';
+  // ステータスバー
+  h+='<div id="fetch-bar-'+idx+'" style="display:none" class="fetch-bar loading"><span id="fetch-bar-msg-'+idx+'">-</span></div>';
+  h+='<div id="progress-wrap-'+idx+'" style="display:none" class="progress-wrap"><div class="progress-bg"><div class="progress-fill" id="progress-fill-'+idx+'"></div></div><div class="progress-label" id="progress-label-'+idx+'">待機中...</div></div>';
+  h+='<div id="error-detail-'+idx+'" style="display:none" class="error-detail"></div>';
+  // カレンダーカード
+  h+='<div class="card"><div class="cal-header">';
+  h+='<button class="cal-nav" onclick="calNav(-1)">&#9664;</button>';
+  h+='<span class="cal-title">'+_calYear+'年'+_calMonth+'月</span>';
+  h+='<button class="cal-nav" onclick="calNav(1)">&#9654;</button>';
+  h+='</div><div class="cal-grid">';
+  var dows=['日','月','火','水','木','金','土'];
+  dows.forEach(function(d){h+='<div class="cal-dow">'+d+'</div>';});
+  var firstDay=new Date(_calYear,_calMonth-1,1).getDay();
+  var lastDate=new Date(_calYear,_calMonth,0).getDate();
+  var prevLastDate=new Date(_calYear,_calMonth-1,0).getDate();
+  var today=new Date();
+  var todayStr=today.getFullYear()+'-'+pad2(today.getMonth()+1)+'-'+pad2(today.getDate());
+  for(var i=firstDay-1;i>=0;i--) h+='<div class="cal-cell other-month"><span>'+(prevLastDate-i)+'</span></div>';
+  for(var d=1;d<=lastDate;d++){
+    var dateStr=_calYear+'-'+pad2(_calMonth)+'-'+pad2(d);
+    var cls='cal-cell';
+    if(dateStr===todayStr)cls+=' today';
+    if(dateStr===_selectedDate)cls+=' selected';
+    var dots='';
+    var dayRes=reserveMap[dateStr]||[];
+    var selFac=getSelectedFacilities();
+    var selNames=selFac.map(function(f){return f.fn;});
+    dayRes.forEach(function(r){
+      var st=r.st||'';
+      var isConfirmed=(st==='R01'||st==='L05'||st==='L08');
+      var isLost=(st==='L07');
+      var isPending=(st==='L03');
+      var matchesFacility=selNames.length===0||selNames.some(function(n){return (r.place||'').indexOf(n)>=0;});
+      if(isConfirmed&&config.confirmed) dots+='<div class="cal-dot green"></div>';
+      else if(isPending&&config.pending&&matchesFacility) dots+='<div class="cal-dot yellow"></div>';
+      else if(isLost&&config.lost) dots+='<div class="cal-dot" style="background:#9ca3af"></div>';
+    });
+    h+='<div class="'+cls+'" onclick="selectDate(\''+dateStr+'\')">';
+    h+='<span>'+d+'</span>';
+    if(dots)h+='<div class="cal-dots">'+dots+'</div>';
+    h+='</div>';
+  }
+  var totalCells=firstDay+lastDate;
+  var remaining=totalCells%7===0?0:7-totalCells%7;
+  for(var i=1;i<=remaining;i++) h+='<div class="cal-cell other-month"><span>'+i+'</span></div>';
+  h+='</div>';
+  // 日付詳細
+  if(_selectedDate){
+    var items=reserveMap[_selectedDate]||[];
+    var selFac2=getSelectedFacilities();
+    var selNames2=selFac2.map(function(f){return f.fn;});
+    // フィルタ適用
+    var filtered=items.filter(function(r){
+      var st=r.st||'';
+      var isConfirmed=(st==='R01'||st==='L05'||st==='L08');
+      var isLost=(st==='L07');
+      var isPending=(st==='L03');
+      var matchesFacility=selNames2.length===0||selNames2.some(function(n){return (r.place||'').indexOf(n)>=0;});
+      if(isConfirmed) return config.confirmed;
+      if(isPending) return config.pending&&matchesFacility;
+      if(isLost) return config.lost;
+      return true;
+    });
+    h+='<div class="day-detail" style="display:block">';
+    h+='<div class="day-detail-title">'+formatDateLabel(_selectedDate)+'</div>';
+    if(filtered.length===0){
+      h+='<div class="empty-msg">この日の予約はありません</div>';
+    }else{
+      var SL={R01:'確保済',L05:'当選確定',L08:'利用済',L03:'抽選待ち',L01:'申込中',L07:'落選'};
+      var SB={R01:'badge-confirmed',L05:'badge-confirmed',L08:'badge-confirmed',L03:'badge-pending',L01:'badge-applied',L07:'badge-applied'};
+      var SD={R01:'var(--green)',L05:'var(--green)',L08:'var(--green)',L03:'var(--yellow)',L01:'var(--blue)',L07:'#9ca3af'};
+      filtered.forEach(function(r){
+        var st=r.st||'';
+        h+='<div class="detail-item">';
+        h+='<div class="detail-dot" style="background:'+(SD[st]||'var(--accent)')+'"></div>';
+        h+='<div class="detail-info"><div class="detail-place">'+escHtml(r.place||r.f||'')+'</div><div class="detail-time">'+escHtml(r.time||'')+'</div></div>';
+        h+='<div class="detail-badge '+(SB[st]||'badge-applied')+'">'+(SL[st]||st)+'</div>';
+        h+='</div>';
+      });
+    }
+    h+='</div>';
+  }
+  h+='</div>';
+  if(reserves.length===0&&!cached) h+='<div class="empty-msg">更新ボタンを押してデータを取得してください</div>';
+  h+='</div>';
+  return h;
+}
+
+// ── カレンダーナビ ──
+function calNav(dir){
+  _calMonth+=dir;
+  if(_calMonth>12){ _calMonth=1; _calYear++; }
+  if(_calMonth<1){ _calMonth=12; _calYear--; }
+  _selectedDate=null;
+  applyStatusPanel();
+}
+
+function selectDate(dateStr){
+  _selectedDate=(_selectedDate===dateStr)?null:dateStr;
+  applyStatusPanel();
+}
+
+function formatDateLabel(dateStr){
+  var WEEKDAYS=['日','月','火','水','木','金','土'];
+  try{
+    var p=dateStr.split('-');
+    var dt=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));
+    return parseInt(p[1])+'月'+parseInt(p[2])+'日('+WEEKDAYS[dt.getDay()]+')';
+  }catch(e){ return dateStr; }
+}
+
+function pad2(n){ return n<10?'0'+n:''+n; }
+
+// ── スタンプ（per-account版） ──
+function renderStamps(){
+  var visible=getVisibleAccounts();
+  var container=document.getElementById('stamp-accounts');
+  var totalEl=document.getElementById('stamp-total');
+  if(!container) return;
+  var stamps=getStamps();
+  var totalEarned=0;
+  var html='';
+  visible.forEach(function(acct){
+    var data=stamps[acct.id]||{current:0,total_earned:0};
+    // 旧形式(count/log)からの移行
+    if(typeof data.current==='undefined' && typeof data.count!=='undefined'){
+      data.current=data.count; data.total_earned=data.total_earned||0;
+    }
+    var cur=data.current||0;
+    var earned=data.total_earned||0;
+    totalEarned+=earned;
+    html+='<div class="stamp-acct">';
+    html+='<div class="stamp-acct-label">'+escHtml(acct.label)+' '+escHtml(acct.id)+'</div>';
+    html+='<div class="stamp-dots">';
+    for(var si=0;si<STAMP_PER_FREE;si++){
+      html+='<div class="stamp-dot'+(si<cur?' filled':'')+'">'+(si<cur?'●':'○')+'</div>';
+    }
+    html+='</div>';
+    html+='<div class="stamp-count">現在 <span class="num">'+cur+'</span> / '+STAMP_PER_FREE+' 枚</div>';
+    html+='<div class="stamp-acct-btns">';
+    html+='<button class="minus" onclick="stampChange(\''+escHtml(acct.id)+'\',-1)">-1</button>';
+    html+='<button class="plus" onclick="stampChange(\''+escHtml(acct.id)+'\',1)">+1</button>';
+    html+='</div></div>';
+  });
+  container.innerHTML=html;
+  if(totalEl) totalEl.textContent='無料券獲得数: 合計 '+totalEarned+'枚';
+}
+
+function stampChange(accountId,delta){
+  var stamps=getStamps();
+  var data=stamps[accountId]||{current:0,total_earned:0};
+  if(typeof data.current==='undefined') data.current=data.count||0;
+  if(typeof data.total_earned==='undefined') data.total_earned=0;
+  var newVal=Math.max(0,data.current+delta);
+  if(newVal>=STAMP_PER_FREE){
+    if(!confirm('80枚達成！無料4時間分を受付で確認してください')) return;
+    data.total_earned=(data.total_earned||0)+1;
+    data.current=0;
+  } else {
+    data.current=newVal;
+  }
+  stamps[accountId]=data;
+  setStamps(stamps);
+  renderStamps();
+}
+
+// ── 更新（API通信・per-account版） ──
+function startRefreshFor(idx){
+  var apiUrl=getApiUrl();
+  if(!apiUrl){showToast('APIサーバーURLを設定してください');switchTab('settings');return;}
+  if(_refreshingIdx>=0){showToast('他のアカウントを更新中です');return;}
+  var visible=getVisibleAccounts();
+  if(idx>=visible.length)return;
+  var acct=visible[idx];
+  if(!acct||!acct.id){showToast('アカウントIDが未設定です');return;}
+  var accounts=getAccounts()||[];
+  var acctNum=1;
+  for(var i=0;i<accounts.length;i++){if(accounts[i].id===acct.id){acctNum=i+1;break;}}
+  _refreshingIdx=idx;
+  setBusyFor(idx,true);
+  showBarFor(idx,'loading','取得リクエスト送信中...');
+  hide('error-detail-'+idx);
+  fetch(apiUrl+'/api/refresh',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({account:acctNum}),signal:AbortSignal.timeout(10000),
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!d.ok)throw new Error(d.message||'サーバーエラー');
+    showBarFor(idx,'waiting','harp_api.py 実行中（約15〜20秒）');
+    startPolling(apiUrl,acct.id,idx);
+  })
+  .catch(function(e){
+    showBarFor(idx,'error','送信失敗');
+    showErrFor(idx,'サーバーに接続できません: '+e.message);
+    setBusyFor(idx,false);_refreshingIdx=-1;
+  });
+}
+function startRefresh(){startRefreshFor(0);}
+
+function startPolling(apiUrl,accountId,idx){
+  _pollCount=0;
+  setProgressFor(idx,0,'実行中...');
+  show('progress-wrap-'+idx);
+  _pollTimer=setInterval(function(){
+    _pollCount++;
+    var pct=Math.min(95,(_pollCount/POLL_MAX)*100);
+    setProgressFor(idx,pct,Math.round(_pollCount*POLL_INTERVAL/1000)+'秒経過');
+    if(_pollCount>=POLL_MAX){stopPolling(idx);showBarFor(idx,'error','タイムアウト');setBusyFor(idx,false);_refreshingIdx=-1;return;}
+    fetch(apiUrl+'/api/status',{signal:AbortSignal.timeout(5000)})
+    .then(function(r){return r.json();})
+    .then(function(d){if(!d.running){stopPolling(idx);fetchLatest(apiUrl,accountId,idx);}})
+    .catch(function(){});
+  },POLL_INTERVAL);
+}
+function stopPolling(idx){if(_pollTimer){clearInterval(_pollTimer);_pollTimer=null;}hide('progress-wrap-'+idx);}
+
+function fetchLatest(apiUrl,accountId,idx){
+  showBarFor(idx,'loading','結果を取得中...');
+  var url=apiUrl+'/api/latest';
+  if(accountId)url+='?account='+encodeURIComponent(accountId);
+  fetch(url,{signal:AbortSignal.timeout(10000)})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!d.ok)throw new Error(d.message||'データなし');
+    var reserves=d.reserves||[];
+    var returnedAccount=d.account||'';
+    if(returnedAccount)setCache(returnedAccount,{reserves:reserves,fetchedAt:d.fetchedAt||new Date().toISOString()});
+    applyStatusPanel();
+    showBarFor(idx,'success',reserves.length+'件取得完了');
+    showToast((returnedAccount||'')+' 取得完了 '+reserves.length+'件');
+    setTimeout(function(){hide('fetch-bar-'+idx);},4000);
+  })
+  .catch(function(e){showBarFor(idx,'error','結果取得失敗');showErrFor(idx,'エラー: '+e.message);})
+  .finally(function(){setBusyFor(idx,false);_refreshingIdx=-1;});
+}
+
+// ── UI部品（per-account版） ──
+function setBusyFor(idx,b){
+  var btn=document.getElementById('btn-refresh-'+idx);
+  var icon=document.getElementById('refresh-icon-'+idx);
+  if(btn)btn.disabled=b;
+  if(icon)icon.className=b?'spin':'';
+}
+function showBarFor(idx,type,msg){
+  var bar=document.getElementById('fetch-bar-'+idx);
+  var txt=document.getElementById('fetch-bar-msg-'+idx);
+  if(!bar)return;
+  bar.className='fetch-bar '+type;
+  if(txt)txt.textContent=msg;
+  bar.style.display='block';
+}
+function showErrFor(idx,msg){var e=document.getElementById('error-detail-'+idx);if(!e)return;e.textContent=msg;e.style.display='block';}
+function setProgressFor(idx,pct,label){
+  var f=document.getElementById('progress-fill-'+idx);var l=document.getElementById('progress-label-'+idx);
+  if(f)f.style.width=pct+'%';if(l)l.textContent=label;
+}
+function formatTime(iso){
+  if(!iso) return '未取得';
+  try{var d=new Date(iso);return '更新: '+(d.getMonth()+1)+'/'+(d.getDate())+' '+pad2(d.getHours())+':'+pad2(d.getMinutes());}catch(e){return '取得済';}
+}
+
+// ══════════════════════════════════════
+//  抽選申込タブ
+// ══════════════════════════════════════
+
+var _modalSelection = []; // モーダル内の一時選択状態
+
+function renderFacilityTags(){
+  var sel=getSelectedFacilities();
+  var list=document.getElementById('facility-list');
+  var summary=document.getElementById('facility-summary');
+  if(!list) return;
+  summary.textContent='選択中: '+sel.length+'件';
+  var html='';
+  sel.forEach(function(f,i){
+    html+='<div class="facility-tag">'+escHtml(f.fn)+'<span class="remove" onclick="removeFacility('+i+')">×</span></div>';
+  });
+  list.innerHTML=html;
+}
+
+function removeFacility(idx){
+  var sel=getSelectedFacilities();
+  sel.splice(idx,1);
+  setSelectedFacilities(sel);
+  renderFacilityTags();
+}
+
+// ── 施設選択モーダル ──
+function openFacilityModal(){
+  _modalSelection=getSelectedFacilities().map(function(f){ return f.fc; });
+  renderFacilityModalBody('');
+  document.getElementById('facility-modal').classList.add('open');
+  document.getElementById('facility-search').value='';
+  document.body.style.overflow='hidden';
+}
+
+function closeFacilityModal(){
+  document.getElementById('facility-modal').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+function filterFacilityModal(){
+  var q=document.getElementById('facility-search').value.trim();
+  renderFacilityModalBody(q);
+}
+
+function renderFacilityModalBody(query){
+  var body=document.getElementById('facility-modal-body');
+  // 区別にグループ化
+  var wards={};
+  var wardOrder=[];
+  FACILITY_MASTER.forEach(function(f){
+    if(query && f.fn.indexOf(query)===-1) return;
+    if(!wards[f.an]){ wards[f.an]=[]; wardOrder.push(f.an); }
+    wards[f.an].push(f);
+  });
+  var html='';
+  wardOrder.forEach(function(ward){
+    var items=wards[ward];
+    var isOpen=!!query; // 検索中は全展開
+    html+='<div class="ward-group">';
+    html+='<div class="ward-header'+(isOpen?' open':'')+'" onclick="toggleWard(this)">';
+    html+='<span class="arrow">&#9654;</span>';
+    html+='<span>'+escHtml(ward)+'</span>';
+    html+='<span class="count">('+items.length+'校)</span>';
+    html+='</div>';
+    html+='<div class="ward-items'+(isOpen?' open':'')+'">';
+    items.forEach(function(f){
+      var checked=_modalSelection.indexOf(f.fc)>=0;
+      var disabled=!f.fc;
+      html+='<div class="facility-item'+(checked?' checked':'')+(disabled?' disabled':'')+'" data-fc="'+escHtml(f.fc)+'" onclick="toggleFacilityItem(this)">';
+      html+='<div class="checkbox">'+(checked?'✓':'')+'</div>';
+      html+='<span class="f-name">'+escHtml(f.fn)+'</span>';
+      html+='<span class="f-code">'+escHtml(f.fc||'未登録')+'</span>';
+      html+='</div>';
+    });
+    html+='</div></div>';
+  });
+  if(!html) html='<div class="empty-msg">該当する施設がありません</div>';
+  body.innerHTML=html;
+}
+
+function toggleWard(header){
+  header.classList.toggle('open');
+  var items=header.nextElementSibling;
+  if(items) items.classList.toggle('open');
+}
+
+function toggleFacilityItem(el){
+  var fc=el.getAttribute('data-fc');
+  if(!fc) return;
+  var idx=_modalSelection.indexOf(fc);
+  if(idx>=0){
+    _modalSelection.splice(idx,1);
+    el.classList.remove('checked');
+    el.querySelector('.checkbox').textContent='';
+  } else {
+    _modalSelection.push(fc);
+    el.classList.add('checked');
+    el.querySelector('.checkbox').textContent='✓';
+  }
+}
+
+function confirmFacilitySelection(){
+  var result=[];
+  _modalSelection.forEach(function(fc){
+    for(var i=0;i<FACILITY_MASTER.length;i++){
+      if(FACILITY_MASTER[i].fc===fc){
+        result.push({fc:fc, fn:FACILITY_MASTER[i].fn, an:FACILITY_MASTER[i].an});
+        break;
+      }
+    }
+  });
+  result.sort(function(a,b){ return a.an<b.an?-1:a.an>b.an?1:a.fn<b.fn?-1:a.fn>b.fn?1:0; });
+  setSelectedFacilities(result);
+  renderFacilityTags();
+  closeFacilityModal();
+}
+
+// ── 曜日・時間帯フィルタ ──
+function toggleFilterChip(el){
+  el.classList.toggle('active');
+  saveFilterFromUI();
+}
+
+function saveFilterFromUI(){
+  var days=[];
+  document.querySelectorAll('#dow-chips .filter-chip.active').forEach(function(c){
+    days.push(parseInt(c.getAttribute('data-dow')));
+  });
+  var timeSlots=[];
+  document.querySelectorAll('#period-chips .filter-chip.active').forEach(function(c){
+    timeSlots.push(c.getAttribute('data-period'));
+  });
+  setFilterConfig({days:days, timeSlots:timeSlots});
+}
+
+function restoreFilterUI(){
+  var config=getFilterConfig();
+  document.querySelectorAll('#dow-chips .filter-chip').forEach(function(c){
+    var d=parseInt(c.getAttribute('data-dow'));
+    if(config.days.indexOf(d)>=0) c.classList.add('active'); else c.classList.remove('active');
+  });
+  document.querySelectorAll('#period-chips .filter-chip').forEach(function(c){
+    var p=c.getAttribute('data-period');
+    if(config.timeSlots.indexOf(p)>=0) c.classList.add('active'); else c.classList.remove('active');
+  });
+}
+
+// ── 設定同期 ──
+function syncSettings(){
+  var apiUrl=getApiUrl();
+  if(!apiUrl){ showToast('APIサーバーURLを設定してください'); switchTab('settings'); return; }
+  var btn=document.getElementById('btn-sync');
+  if(btn) btn.disabled=true;
+  var sel=getSelectedFacilities();
+  var filter=getFilterConfig();
+  var payload={
+    facilities:sel.map(function(f){ return {fc:f.fc, fn:f.fn, an:f.an}; }),
+    days:filter.days,
+    timeSlots:filter.timeSlots
+  };
+  fetch(apiUrl+'/api/settings',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload),
+    signal:AbortSignal.timeout(10000)
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(!d.ok) throw new Error(d.message||'エラー');
+    var s={dirty:false, lastSync:d.updated_at||new Date().toISOString()};
+    setSyncStatus(s);
+    renderSyncStatus();
+    showToast('サーバーに同期しました');
+  })
+  .catch(function(e){
+    showToast('同期失敗: '+e.message);
+  })
+  .finally(function(){
+    if(btn) btn.disabled=false;
+  });
+}
+
+function renderSyncStatus(){
+  var el=document.getElementById('sync-status');
+  if(!el) return;
+  var s=getSyncStatus();
+  if(s.dirty){
+    el.innerHTML='<span class="sync-pending">未同期の変更あり</span>';
+  } else if(s.lastSync){
+    var dt=new Date(s.lastSync);
+    var ts=(dt.getMonth()+1)+'/'+dt.getDate()+' '+pad2(dt.getHours())+':'+pad2(dt.getMinutes());
+    el.innerHTML='<span class="sync-ok">同期済み</span> 最終: '+ts;
+  } else {
+    el.textContent='';
+  }
+}
+
+function loadSettingsFromServer(){
+  var apiUrl=getApiUrl();
+  if(!apiUrl) return;
+  fetch(apiUrl+'/api/settings',{signal:AbortSignal.timeout(5000)})
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(!d.ok) return;
+    if(d.facilities&&d.facilities.length>0){
+      var current=getSelectedFacilities();
+      if(current.length===0){
+        setSelectedFacilities(d.facilities);
+        renderFacilityTags();
+      }
+    }
+    if(d.days&&d.days.length>0){
+      var fc=getFilterConfig();
+      if(fc.days.length===0&&fc.timeSlots.length===0){
+        setFilterConfig({days:d.days, timeSlots:d.timeSlots||[]});
+        restoreFilterUI();
+      }
+    }
+    var s=getSyncStatus();
+    if(!s.lastSync){ s.lastSync=new Date().toISOString(); s.dirty=false; setSyncStatus(s); renderSyncStatus(); }
+  })
+  .catch(function(e){ console.warn('settings load error:', e); });
+}
+
+// ══════════════════════════════════════
+//  設定タブ
+// ══════════════════════════════════════
+
+function renderSettingsPanel(){
+  var accounts=getAccounts()||[];
+  var container=document.getElementById('acct-manager');
+  var html='';
+
+  accounts.forEach(function(a,i){
+    var label=a.label||labelForIndex(i);
+    html+='<div class="acct-row" data-idx="'+i+'">';
+    html+='<span class="acct-label">'+escHtml(label)+'</span>';
+    html+='<div class="acct-field">';
+    html+='<input type="tel" class="acct-input" data-field="id" value="'+escHtml(a.id||'')+'" placeholder="利用者番号" inputmode="numeric" maxlength="8" style="margin-bottom:6px">';
+    html+='<div class="pw-wrap"><input type="password" class="acct-input" data-field="pw" value="'+escHtml(a.pw||'')+'" placeholder="パスワード" style="padding-right:36px">';
+    html+='<button class="pw-toggle" onclick="togglePwAt(this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>';
+    html+='</div>';
+    html+='<div class="toggle-wrap"><button class="toggle-switch'+(a.visible?' on':'')+'" onclick="toggleVisAt(this,'+i+')"></button><span class="toggle-label">表示</span></div>';
+    html+='<button class="btn-delete-acct" onclick="deleteAcct('+i+')"'+(accounts.length<=1?' disabled':'')+'>×</button>';
+    html+='</div>';
+  });
+
+  html+='<button class="btn-add-acct" onclick="addAcct()"'+(accounts.length>=MAX_ACCOUNTS?' disabled':'')+'>+ アカウントを追加</button>';
+  container.innerHTML=html;
+
+  // APIサーバーURL
+  var apiInput=document.getElementById('api-url');
+  if(apiInput) apiInput.value=getApiUrl();
+
+  // 表示設定
+  var config=getDisplayConfig();
+  setToggle('disp-confirmed',config.confirmed);
+  setToggle('disp-pending',config.pending);
+  setToggle('disp-vacancy',config.vacancy);
+  setToggle('disp-lost',!!config.lost);
+}
+
+function labelForIndex(i){
+  var labels=['①','②','③','④','⑤'];
+  return labels[i]||'('+(i+1)+')';
+}
+
+function togglePwAt(btn){
+  var input=btn.previousElementSibling||btn.parentElement.querySelector('input');
+  if(!input) return;
+  var show=input.type==='password';
+  input.type=show?'text':'password';
+}
+
+function toggleVisAt(btn,idx){
+  btn.classList.toggle('on');
+}
+
+function setToggle(id,val){
+  var el=document.getElementById(id);
+  if(!el) return;
+  if(val) el.classList.add('on'); else el.classList.remove('on');
+}
+
+function toggleDisplay(btn){ btn.classList.toggle('on'); }
+
+function deleteAcct(idx){
+  var accounts=getAccounts()||[];
+  if(accounts.length<=1) return;
+  if(!confirm(accounts[idx].label+'を削除しますか？')) return;
+  accounts.splice(idx,1);
+  // ラベル再付与
+  accounts.forEach(function(a,i){ a.label=labelForIndex(i); });
+  setAccounts(accounts);
+  renderSettingsPanel();
+  renderAcctTabs();
+}
+
+function addAcct(){
+  var accounts=getAccounts()||[];
+  if(accounts.length>=MAX_ACCOUNTS) return;
+  accounts.push({id:'',pw:'',label:labelForIndex(accounts.length),visible:true});
+  setAccounts(accounts);
+  renderSettingsPanel();
+}
+
+function saveAllSettings(){
+  // アカウント情報を収集
+  var rows=document.querySelectorAll('.acct-row');
+  var accounts=[];
+  rows.forEach(function(row,i){
+    var idInput=row.querySelector('[data-field="id"]');
+    var pwInput=row.querySelector('[data-field="pw"]');
+    var toggle=row.querySelector('.toggle-switch');
+    if(!idInput) return;
+    accounts.push({
+      id:(idInput.value||'').trim(),
+      pw:pwInput?pwInput.value:'',
+      label:labelForIndex(i),
+      visible:toggle?toggle.classList.contains('on'):true
+    });
+  });
+  setAccounts(accounts);
+
+  // API URL
+  var apiInput=document.getElementById('api-url');
+  if(apiInput) saveApiUrl(apiInput.value);
+
+  // 表示設定
+  var config={
+    confirmed:document.getElementById('disp-confirmed').classList.contains('on'),
+    pending:document.getElementById('disp-pending').classList.contains('on'),
+    vacancy:document.getElementById('disp-vacancy').classList.contains('on'),
+    lost:document.getElementById('disp-lost').classList.contains('on')
+  };
+  setDisplayConfig(config);
+
+  renderAcctTabs();
+  applyStatusPanel();
+  showToast('設定を保存しました');
+}
+
+// ── 接続テスト ──
+function testConnection(){
+  var url=document.getElementById('api-url').value.trim();
+  if(!url){ showToast('URLを入力してください'); return; }
+  saveApiUrl(url);
+  var dot=document.getElementById('api-dot'); if(dot) dot.className='api-dot';
+  showToast('接続テスト中...');
+  fetch(url+'/api/ping',{signal:AbortSignal.timeout(5000)})
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(dot) dot.className='api-dot ok';
+    showToast('接続OK: '+(d.message||'応答あり'));
+  })
+  .catch(function(e){
+    if(dot) dot.className='api-dot err';
+    showToast('接続失敗: '+(e.message||'不明').substring(0,30));
+  });
+}
+
+// ── トースト ──
+function showToast(msg){
+  var t=document.getElementById('toast');
+  if(!t){ t=document.createElement('div'); t.id='toast'; t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:#18181b;color:#fff;font-size:14px;font-weight:600;padding:10px 20px;border-radius:12px;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.25)'; document.body.appendChild(t); }
+  t.textContent=msg; t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)';
+  clearTimeout(t._t); t._t=setTimeout(function(){ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(20px)'; },2500);
+}
+
+// ══════════════════════════════════════
+//  初期化
+// ══════════════════════════════════════
+(function init(){
+  // 古いキャッシュを一括クリア
+  clearOldCaches();
+
+  // 旧データ移行
+  var accounts=migrateLegacy();
+
+  // カレンダー初期年月
+  var now=new Date();
+  _calYear=now.getFullYear();
+  _calMonth=now.getMonth()+1;
+
+  if(!accounts||accounts.length===0){
+    // アカウント未設定→設定タブへ
+    setAccounts([{id:'',pw:'',label:'①',visible:true}]);
+    switchTab('settings');
+    return;
+  }
+
+  // アクティブアカウント設定（localStorageから復元）
+  try{ _activeAccountId=localStorage.getItem(ACTIVE_KEY)||''; }catch(e){}
+  var active=getActiveAccount();
+  if(active) _activeAccountId=active.id;
+
+  renderAcctTabs();
+  applyStatusPanel();
+  renderFacilityTags();
+  restoreFilterUI();
+  renderSyncStatus();
+  loadSettingsFromServer();
+
+  // API URL blur自動保存
+  var a=document.getElementById('api-url');
+  if(a){ a.value=getApiUrl(); a.addEventListener('blur',function(){ saveApiUrl(a.value); }); }
+})();
+</script>
+</body>
+</html>

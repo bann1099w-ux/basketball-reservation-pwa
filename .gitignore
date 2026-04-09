@@ -1,0 +1,17 @@
+# バックアップファイル
+*.bak
+*.bak_*
+*.broken_*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# ログ
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

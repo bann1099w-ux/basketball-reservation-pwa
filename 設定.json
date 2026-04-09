@@ -1,0 +1,93 @@
+{
+  "target_month": "2026-05",
+  "purpose": "ミニバスケットボール",
+  "utilization_purpose_key": "71",
+  "target_weekdays": [
+    5,
+    6
+  ],
+  "target_weekday_names": [
+    "金",
+    "土"
+  ],
+  "target_time_after": "17:00:00",
+  "preferred_time_slot": "夜間",
+  "max_applications_per_account": 15,
+  "court_preference": "half_a",
+  "dry_run": false,
+  "accounts": [
+    {
+      "id_env": "HARP_ACCOUNT_1_ID",
+      "pw_env": "HARP_ACCOUNT_1_PW",
+      "label": "①"
+    },
+    {
+      "id_env": "HARP_ACCOUNT_2_ID",
+      "pw_env": "HARP_ACCOUNT_2_PW",
+      "label": "②"
+    }
+  ],
+  "target_facilities": [
+    {
+      "code": "0310",
+      "name": "丘珠小学校",
+      "area": "東区"
+    },
+    {
+      "code": "0309",
+      "name": "札苗緑小学校",
+      "area": "東区"
+    },
+    {
+      "code": "0304",
+      "name": "札苗中学校",
+      "area": "東区"
+    },
+    {
+      "code": "0301",
+      "name": "東栄中学校",
+      "area": "東区"
+    },
+    {
+      "code": "0311",
+      "name": "札苗北中学校",
+      "area": "東区"
+    },
+    {
+      "code": "0293",
+      "name": "伏古小学校",
+      "area": "東区"
+    }
+  ],
+  "monitoring": {
+    "interval_seconds": 300,
+    "target_month_spot": "2026-04",
+    "auto_apply": true,
+    "max_spot_applications": 5,
+    "alert_only_mode": false,
+    "preferred_courts": [
+      "半面Ａ",
+      "半面A",
+      "全面"
+    ],
+    "preferred_periods": [
+      2
+    ],
+    "period_names": {
+      "0": "午前",
+      "1": "午後",
+      "2": "夜間"
+    }
+  },
+  "lottery": {
+    "target_month": "2026-05",
+    "apply_start": "2026-04-20",
+    "apply_end": "2026-04-22",
+    "confirm_start": "2026-04-23",
+    "confirm_end": "2026-04-25"
+  },
+  "notify": {
+    "heartbeat": true,
+    "log_file": true
+  }
+}
